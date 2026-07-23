@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PAN Card Generator &amp; Print + PDF</title>
+
+    <!-- html2canvas + jsPDF from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+    </script>
+
+    <style>
+        /* ========== RESET & BASE ========== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* ========== FORM STYLES ========== */
+        .form-container {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+            padding: 40px 48px;
+            max-width: 520px;
+            width: 100%;
+            transition: all 0.2s;
+            position: relative;
+            z-index: 10;
+        }
+
+        .form-container h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #1a1a2e;
+            margin-bottom: 6px;
+        }
+
+        .form-container .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 28px;
+            border-bottom: 2px solid #eef0f4;
+            padding-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            font-size: 14px;
+            color: #1a1a2e;
+            margin-bottom: 6px;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+            margin-left: 2px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid #d0d5dd;
+            border-radius: 10px;
+            font-size: 15px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #fafbfc;
+            outline: none;
+            font-family: inherit;
+        }
+
+        .form-group input:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.12);
+            background: #fff;
+        }
+
+        .form-group input::placeholder {
+            color: #9aa0b0;
+            font-size: 14px;
+        }
+
+        .form-group .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .form-group .error-msg {
+            font-size: 13px;
+            color: #e74c3c;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .form-group.error input {
+            border-color: #e74c3c;
+            background: #fef6f6;
+        }
+
+        .form-group.error .error-msg {
+            display: block;
+        }
+
+        /* ---- button row ---- */
+        .btn-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+
+        .btn-row .btn {
+            flex: 1;
+            min-width: 140px;
+            padding: 14px 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 17px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s, opacity 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: 0.3px;
+            font-family: inherit;
+        }
+
+        .btn-row .btn:active {
+            transform: scale(0.97);
+        }
+        .btn-row .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-print {
+            background: #4f46e5;
+            color: #fff;
+        }
+        .btn-print:hover:not(:disabled) {
+            background: #4338ca;
+        }
+
+        .btn-pdf {
+            background: #16a34a;
+            color: #fff;
+        }
+        .btn-pdf:hover:not(:disabled) {
+            background: #15803d;
+        }
+
+        .btn .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.7s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .btn.loading .btn-text {
+            display: none;
+        }
+        .btn.loading .spinner {
+            display: block;
+        }
+        .btn.loading {
+            gap: 0;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .print-tip {
+            font-size: 13px;
+            color: #555;
+            background: #f8f9fc;
+            padding: 10px 14px;
+            border-radius: 8px;
+            margin-top: 14px;
+            border-left: 3px solid #4f46e5;
+            line-height: 1.5;
+        }
+        .print-tip strong {
+            color: #1a1a2e;
+        }
+        .print-tip code {
+            background: #eef0f4;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        /* ========== PRINT PAGES (hidden on screen) ========== */
+        .print-pages {
+            display: none;
+        }
+
+        /* ========== PAGE STYLES (shared for all 3) ========== */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        .page {
+            width: 210mm;
+            height: 297mm;
+            position: relative;
+            overflow: hidden;
+            background: #fff;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            page-break-after: always;
+            page-break-inside: avoid;
+            margin: 0;
+            padding: 0;
+        }
+
+        .bg {
+            position: absolute;
+            width: 397px;
+            height: 802px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) translateZ(0);
+            -webkit-transform: translate(-50%, -50%) translateZ(0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            will-change: transform;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+            border: 0;
+            outline: 0;
+        }
+
+        .overlay {
+            position: absolute;
+            width: 397px;
+            height: 802px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) translateZ(0);
+            -webkit-transform: translate(-50%, -50%) translateZ(0);
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            will-change: transform;
+            pointer-events: none;
+            border: 0;
+            outline: 0;
+        }
+
+        /* ========== PAGE 1 (index1) ========== */
+        .page1 .bg {
+            background-image: url("background1.jpg");
+        }
+        .page1 .pan {
+            position: absolute;
+            left: 68px;
+            top: 316px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page1 .name {
+            position: absolute;
+            left: 69px;
+            top: 412px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page1 .dob {
+            position: absolute;
+            left: 69px;
+            top: 508px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page1 .mobile {
+            position: absolute;
+            left: 108px;
+            top: 607px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* ========== PAGE 2 (index2) ========== */
+        .page2 .bg {
+            background-image: url("background2.jpg");
+        }
+        .page2 .n1 {
+            position: absolute;
+            left: 65px;
+            top: 361px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page2 .n2 {
+            position: absolute;
+            left: 113px;
+            top: 361px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page2 .n3 {
+            position: absolute;
+            left: 162px;
+            top: 361px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page2 .n4 {
+            position: absolute;
+            left: 210px;
+            top: 361px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page2 .n5 {
+            position: absolute;
+            left: 259px;
+            top: 361px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page2 .n6 {
+            position: absolute;
+            left: 308px;
+            top: 361px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page2 .name {
+            position: absolute;
+            left: 69px;
+            top: 412px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page2 .dob {
+            position: absolute;
+            left: 69px;
+            top: 508px;
+            font-size: 26px;
+            font-weight: 500;
+        }
+        .page2 .mobile {
+            position: absolute;
+            left: 253px;
+            top: 293px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* ========== PAGE 3 (index3) ========== */
+        .page3 .bg {
+            background-image: url("background3.jpg");
+        }
+        .page3 .pan {
+            position: absolute;
+            left: 68px;
+            top: 316px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page3 .name {
+            position: absolute;
+            left: 69px;
+            top: 412px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page3 .dob {
+            position: absolute;
+            left: 69px;
+            top: 508px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .page3 .mobile {
+            position: absolute;
+            left: 108px;
+            top: 607px;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        /* ========== PRINT MEDIA ========== */
+        @media print {
+            html,
+            body {
+                margin: 0;
+                padding: 0;
+                width: 210mm;
+                height: 297mm;
+                background: #fff;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                display: block;
+            }
+            .form-container {
+                display: none !important;
+            }
+            .print-pages {
+                display: block !important;
+                margin: 0;
+                padding: 0;
+            }
+            .page {
+                page-break-after: always;
+                page-break-inside: avoid;
+                margin: 0;
+                padding: 0;
+                width: 210mm;
+                height: 297mm;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+            .page:last-child {
+                page-break-after: avoid;
+            }
+            .bg {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color-adjust: exact !important;
+                transform: translate(-50%, -50%) translateZ(0) !important;
+                -webkit-transform: translate(-50%, -50%) translateZ(0) !important;
+                backface-visibility: hidden !important;
+            }
+            .overlay {
+                transform: translate(-50%, -50%) translateZ(0) !important;
+                -webkit-transform: translate(-50%, -50%) translateZ(0) !important;
+                backface-visibility: hidden !important;
+            }
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 560px) {
+            .form-container {
+                padding: 24px 18px;
+            }
+            .form-container h1 {
+                font-size: 21px;
+            }
+            .form-group input {
+                font-size: 14px;
+                padding: 10px 12px;
+            }
+            .btn-row .btn {
+                font-size: 15px;
+                padding: 12px 10px;
+                min-width: 100px;
+            }
+            .btn-row {
+                gap: 8px;
+            }
+        }
+
+        /* ========== PDF OVERLAY (capture helper) ========== */
+        .pdf-capture-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.55);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            backdrop-filter: blur(4px);
+        }
+        .pdf-capture-overlay.active {
+            display: flex;
+        }
+
+        .pdf-capture-overlay .modal {
+            background: #fff;
+            border-radius: 20px;
+            padding: 40px 48px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .pdf-capture-overlay .modal h2 {
+            font-size: 22px;
+            margin-bottom: 8px;
+            color: #1a1a2e;
+        }
+        .pdf-capture-overlay .modal p {
+            color: #555;
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+        .pdf-capture-overlay .modal .big-spinner {
+            width: 48px;
+            height: 48px;
+            border: 5px solid #eef0f4;
+            border-radius: 50%;
+            border-top-color: #4f46e5;
+            animation: spin 0.8s linear infinite;
+            margin: 12px auto 20px;
+        }
+        .pdf-capture-overlay .modal .progress-text {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+        .pdf-capture-overlay .modal .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #eef0f4;
+            border-radius: 8px;
+            margin-top: 12px;
+            overflow: hidden;
+        }
+        .pdf-capture-overlay .modal .progress-bar .fill {
+            height: 100%;
+            width: 0%;
+            background: #4f46e5;
+            border-radius: 8px;
+            transition: width 0.3s;
+        }
+
+        .pdf-capture-overlay .modal .cancel-btn {
+            margin-top: 18px;
+            background: #eef0f4;
+            border: none;
+            padding: 10px 28px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #333;
+            transition: background 0.2s;
+        }
+        .pdf-capture-overlay .modal .cancel-btn:hover {
+            background: #d5d8e0;
+        }
+        .pdf-capture-overlay .modal .error-detail {
+            color: #c0392b;
+            font-size: 13px;
+            background: #fde8e8;
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0 0;
+            display: none;
+        }
+        .pdf-capture-overlay .modal .error-detail.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================ -->
+    <!-- FORM -->
+    <!-- ============================================================ -->
+    <div class="form-container" id="formContainer">
+        <h1>📄 PAN Card Generator</h1>
+        <div class="subtitle">Enter details &amp; Print or Download PDF</div>
+
+        <form id="panForm" novalidate>
+            <!-- Name -->
+            <div class="form-group" id="nameGroup">
+                <label for="fullName">Full Name <span class="required">*</span></label>
+                <input type="text" id="fullName" placeholder="e.g. Rajesh Kumar" autofocus />
+                <div class="hint">Will be auto-converted to UPPERCASE</div>
+                <div class="error-msg" id="nameError">Please enter a valid name (at least 2 characters).</div>
+            </div>
+
+            <!-- PAN -->
+            <div class="form-group" id="panGroup">
+                <label for="panNumber">PAN Number <span class="required">*</span></label>
+                <input type="text" id="panNumber" placeholder="e.g. ABCDE1234F" maxlength="10" />
+                <div class="hint">10 chars: 5 letters + 4 digits + 1 letter (auto-uppercase)</div>
+                <div class="error-msg" id="panError">Invalid PAN. Format: 5 letters, 4 digits, 1 letter.</div>
+            </div>
+
+            <!-- DOB -->
+            <div class="form-group" id="dobGroup">
+                <label for="dobInput">Date of Birth <span class="required">*</span></label>
+                <input type="text" id="dobInput" placeholder="DD/MM/YYYY e.g. 23/04/2001" />
+                <div class="hint">Format: DD/MM/YYYY → converted to DD-MMM-YYYY</div>
+                <div class="error-msg" id="dobError">Invalid date. Use DD/MM/YYYY format with a valid date.</div>
+            </div>
+
+            <!-- Mobile -->
+            <div class="form-group" id="mobileGroup">
+                <label for="mobileNumber">Mobile Number <span class="required">*</span></label>
+                <input type="text" id="mobileNumber" placeholder="e.g. 9876543210" maxlength="10" />
+                <div class="hint">10-digit Indian mobile number</div>
+                <div class="error-msg" id="mobileError">Invalid mobile. Must be 10 digits starting with 6-9.</div>
+            </div>
+
+            <div class="btn-row">
+                <button type="button" class="btn btn-print" id="printBtn">
+                    <span class="btn-text">🖨️ Print</span>
+                    <span class="spinner"></span>
+                </button>
+                <button type="button" class="btn btn-pdf" id="pdfBtn">
+                    <span class="btn-text">📥 Download PDF</span>
+                    <span class="spinner"></span>
+                </button>
+            </div>
+        </form>
+
+        <div class="print-tip">
+            <strong>💡 Print tip:</strong> If backgrounds don't appear, ensure
+            <strong>“Background graphics”</strong> is checked in your browser's print dialog.
+            <br />
+            <strong>📥 PDF tip:</strong> Click <strong>“Download PDF”</strong> to generate a
+            3‑page PDF file directly — no print dialog needed.
+            <br />
+            <strong>⚠️ Important:</strong> For PDF download, <strong>serve this page via a local web server</strong>
+            (e.g., VS Code Live Server) to avoid cross‑origin image restrictions. If you see a “tainted canvas” error,
+            that’s the fix.
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PRINT PAGES (hidden on screen, shown during print / PDF capture) -->
+    <!-- ============================================================ -->
+    <div class="print-pages" id="printPages">
+
+        <!-- ===== PAGE 1 : index1 ===== -->
+        <div class="page page1" id="page1">
+            <div class="bg"></div>
+            <div class="overlay">
+                <div class="pan" id="p1_pan">##PAN##</div>
+                <div class="name" id="p1_name">##NAME##</div>
+                <div class="dob" id="p1_dob">##DOB##</div>
+                <div class="mobile" id="p1_mobile">##MOB##</div>
+            </div>
+        </div>
+
+        <!-- ===== PAGE 2 : index2 ===== -->
+        <div class="page page2" id="page2">
+            <div class="bg"></div>
+            <div class="overlay">
+                <div class="n1" id="p2_q">##Q##</div>
+                <div class="n2" id="p2_w">##W##</div>
+                <div class="n3" id="p2_e">##E##</div>
+                <div class="n4" id="p2_r">##R##</div>
+                <div class="n5" id="p2_t">##T##</div>
+                <div class="n6" id="p2_y">##Y##</div>
+                <div class="mobile" id="p2_mobile">##MOBMASK##</div>
+            </div>
+        </div>
+
+        <!-- ===== PAGE 3 : index3 ===== -->
+        <div class="page page3" id="page3">
+            <div class="bg"></div>
+            <div class="overlay">
+                <!-- no placeholders — just the background -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- PDF CAPTURE OVERLAY (loading modal) -->
+    <!-- ============================================================ -->
+    <div class="pdf-capture-overlay" id="pdfOverlay">
+        <div class="modal">
+            <h2>⏳ Generating PDF</h2>
+            <p>Please wait while we create your 3‑page PAN card PDF.</p>
+            <div class="big-spinner"></div>
+            <div class="progress-text" id="pdfProgressText">Preparing pages…</div>
+            <div class="progress-bar">
+                <div class="fill" id="pdfProgressFill"></div>
+            </div>
+            <div class="error-detail" id="pdfErrorDetail"></div>
+            <button class="cancel-btn" id="pdfCancelBtn">Cancel</button>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- JAVASCRIPT -->
+    <!-- ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ---- DOM refs ----
+            const form = document.getElementById('panForm');
+            const nameInput = document.getElementById('fullName');
+            const panInput = document.getElementById('panNumber');
+            const dobInput = document.getElementById('dobInput');
+            const mobileInput = document.getElementById('mobileNumber');
+            const printBtn = document.getElementById('printBtn');
+            const pdfBtn = document.getElementById('pdfBtn');
+
+            const nameGroup = document.getElementById('nameGroup');
+            const panGroup = document.getElementById('panGroup');
+            const dobGroup = document.getElementById('dobGroup');
+            const mobileGroup = document.getElementById('mobileGroup');
+
+            const nameError = document.getElementById('nameError');
+            const panError = document.getElementById('panError');
+            const dobError = document.getElementById('dobError');
+            const mobileError = document.getElementById('mobileError');
+
+            const p1_pan = document.getElementById('p1_pan');
+            const p1_name = document.getElementById('p1_name');
+            const p1_dob = document.getElementById('p1_dob');
+            const p1_mobile = document.getElementById('p1_mobile');
+
+            const p2_q = document.getElementById('p2_q');
+            const p2_w = document.getElementById('p2_w');
+            const p2_e = document.getElementById('p2_e');
+            const p2_r = document.getElementById('p2_r');
+            const p2_t = document.getElementById('p2_t');
+            const p2_y = document.getElementById('p2_y');
+            const p2_mobile = document.getElementById('p2_mobile');
+
+            const pdfOverlay = document.getElementById('pdfOverlay');
+            const pdfProgressText = document.getElementById('pdfProgressText');
+            const pdfProgressFill = document.getElementById('pdfProgressFill');
+            const pdfCancelBtn = document.getElementById('pdfCancelBtn');
+            const pdfErrorDetail = document.getElementById('pdfErrorDetail');
+
+            let pdfCancelFlag = false;
+
+            // ---- helpers ----
+            function setError(group, errorEl, show) {
+                if (show) {
+                    group.classList.add('error');
+                    errorEl.style.display = 'block';
+                } else {
+                    group.classList.remove('error');
+                    errorEl.style.display = 'none';
+                }
+            }
+
+            // ---- validation & formatting ----
+
+            function validateName(val) {
+                const trimmed = val.trim();
+                if (trimmed.length < 2) return { valid: false, value: trimmed };
+                return { valid: true, value: trimmed.toUpperCase() };
+            }
+
+            function validatePan(val) {
+                const raw = val.trim().toUpperCase();
+                if (raw.length !== 10) return { valid: false, value: raw };
+                const letters1 = raw.slice(0, 5);
+                const digits = raw.slice(5, 9);
+                const letter2 = raw.slice(9, 10);
+                const isLetter1 = /^[A-Z]{5}$/.test(letters1);
+                const isDigit = /^[0-9]{4}$/.test(digits);
+                const isLetter2 = /^[A-Z]$/.test(letter2);
+                if (isLetter1 && isDigit && isLetter2) {
+                    return { valid: true, value: raw };
+                }
+                return { valid: false, value: raw };
+            }
+
+            function validateDob(val) {
+                const trimmed = val.trim();
+                const parts = trimmed.split('/');
+                if (parts.length !== 3) return { valid: false, value: trimmed };
+                const d = parseInt(parts[0], 10);
+                const m = parseInt(parts[1], 10);
+                const y = parseInt(parts[2], 10);
+                if (isNaN(d) || isNaN(m) || isNaN(y)) return { valid: false, value: trimmed };
+                if (d < 1 || d > 31 || m < 1 || m > 12 || y < 1900 || y > 2100) return { valid: false, value: trimmed };
+                const dateObj = new Date(y, m - 1, d);
+                if (dateObj.getFullYear() !== y || dateObj.getMonth() !== m - 1 || dateObj.getDate() !== d) {
+                    return { valid: false, value: trimmed };
+                }
+                const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+                ];
+                const dd = String(d).padStart(2, '0');
+                const mmm = monthNames[m - 1];
+                const formatted = dd + '-' + mmm + '-' + y;
+                return { valid: true, value: formatted };
+            }
+
+            function validateMobile(val) {
+                const trimmed = val.trim();
+                if (!/^[6-9][0-9]{9}$/.test(trimmed)) {
+                    return { valid: false, value: trimmed };
+                }
+                return { valid: true, value: trimmed };
+            }
+
+            function maskMobile(num) {
+                if (num.length !== 10) return num;
+                return num.slice(0, 2) + 'xxxxxx' + num.slice(8, 10);
+            }
+
+            function randDigit() {
+                return String(Math.floor(Math.random() * 10));
+            }
+
+            // ---- shared validation + population ----
+            function validateAndPopulate() {
+                // reset errors
+                [nameGroup, panGroup, dobGroup, mobileGroup].forEach(g => g.classList.remove('error'));
+                [nameError, panError, dobError, mobileError].forEach(e => e.style.display = 'none');
+
+                const nameRaw = nameInput.value;
+                const panRaw = panInput.value;
+                const dobRaw = dobInput.value;
+                const mobileRaw = mobileInput.value;
+
+                const nameRes = validateName(nameRaw);
+                const panRes = validatePan(panRaw);
+                const dobRes = validateDob(dobRaw);
+                const mobileRes = validateMobile(mobileRaw);
+
+                let hasError = false;
+                if (!nameRes.valid) { setError(nameGroup, nameError, true);
+                    hasError = true; }
+                if (!panRes.valid) { setError(panGroup, panError, true);
+                    hasError = true; }
+                if (!dobRes.valid) { setError(dobGroup, dobError, true);
+                    hasError = true; }
+                if (!mobileRes.valid) { setError(mobileGroup, mobileError, true);
+                    hasError = true; }
+
+                if (hasError) {
+                    const firstErr = document.querySelector('.form-group.error');
+                    if (firstErr) {
+                        firstErr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstErr.querySelector('input')?.focus();
+                    }
+                    return null;
+                }
+
+                const nameVal = nameRes.value;
+                const panVal = panRes.value;
+                const dobVal = dobRes.value;
+                const mobileVal = mobileRes.value;
+                const masked = maskMobile(mobileVal);
+                const q = randDigit(),
+                    w = randDigit(),
+                    e = randDigit(),
+                    r = randDigit(),
+                    t = randDigit(),
+                    y = randDigit();
+
+                // populate page 1
+                p1_pan.textContent = panVal;
+                p1_name.textContent = nameVal;
+                p1_dob.textContent = dobVal;
+                p1_mobile.textContent = mobileVal;
+
+                // populate page 2
+                p2_q.textContent = q;
+                p2_w.textContent = w;
+                p2_e.textContent = e;
+                p2_r.textContent = r;
+                p2_t.textContent = t;
+                p2_y.textContent = y;
+                p2_mobile.textContent = masked;
+
+                return { name: nameVal, pan: panVal, dob: dobVal, mobile: mobileVal };
+            }
+
+            // ---- PRINT ----
+            function handlePrint() {
+                const data = validateAndPopulate();
+                if (!data) return;
+
+                printBtn.classList.add('loading');
+                printBtn.disabled = true;
+
+                setTimeout(function() {
+                    window.print();
+                    setTimeout(function() {
+                        printBtn.classList.remove('loading');
+                        printBtn.disabled = false;
+                    }, 500);
+                }, 300);
+            }
+
+            // ---- PDF ----
+            async function handlePDF() {
+                const data = validateAndPopulate();
+                if (!data) return;
+
+                // Show overlay
+                pdfOverlay.classList.add('active');
+                pdfCancelFlag = false;
+                pdfProgressFill.style.width = '0%';
+                pdfProgressText.textContent = 'Preparing pages…';
+                pdfErrorDetail.classList.remove('show');
+                pdfErrorDetail.textContent = '';
+
+                const printPages = document.getElementById('printPages');
+                const pages = document.querySelectorAll('.page');
+
+                // Temporarily show print pages for capture
+                printPages.style.display = 'block';
+
+                // Force reflow
+                void printPages.offsetHeight;
+
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const total = pages.length;
+                    let captured = 0;
+
+                    for (let i = 0; i < total; i++) {
+                        if (pdfCancelFlag) break;
+
+                        const page = pages[i];
+                        pdfProgressText.textContent = `Capturing page ${i+1} of ${total}…`;
+                        pdfProgressFill.style.width = `${(i / total) * 100}%`;
+
+                        // Capture with html2canvas – enable CORS and increase scale
+                        const canvas = await html2canvas(page, {
+                            scale: 2.5,
+                            useCORS: true,          // Request images with crossOrigin
+                            allowTaint: false,      // Keep canvas clean
+                            backgroundColor: '#ffffff',
+                            logging: false,
+                            width: 794,
+                            height: 1123,
+                            onclone: function(clonedDoc) {
+                                // Ensure cloned backgrounds are visible
+                            }
+                        });
+
+                        if (pdfCancelFlag) break;
+
+                        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+                        if (i > 0) pdf.addPage();
+                        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+
+                        captured++;
+                        pdfProgressFill.style.width = `${((i + 1) / total) * 100}%`;
+                    }
+
+                    if (pdfCancelFlag) {
+                        pdfProgressText.textContent = '❌ Cancelled';
+                        pdfProgressFill.style.width = '100%';
+                        await new Promise(r => setTimeout(r, 600));
+                        pdfOverlay.classList.remove('active');
+                        printPages.style.display = 'none';
+                        return;
+                    }
+
+                    pdfProgressText.textContent = '✅ Saving PDF…';
+                    pdfProgressFill.style.width = '100%';
+
+                    await new Promise(r => setTimeout(r, 300));
+
+                    pdf.save('PAN_Card.pdf');
+
+                    pdfProgressText.textContent = '✅ Done!';
+                    await new Promise(r => setTimeout(r, 500));
+
+                } catch (err) {
+                    console.error('PDF generation error:', err);
+                    // Check if it's a tainted canvas error
+                    const msg = err.message || '';
+                    if (msg.includes('Tainted') || msg.includes('cross-origin')) {
+                        pdfErrorDetail.textContent =
+                            '⚠️ Tainted canvas error – please serve this page via a local web server (e.g., VS Code Live Server) so the background images are loaded from the same origin.';
+                    } else {
+                        pdfErrorDetail.textContent = '❌ Error: ' + msg;
+                    }
+                    pdfErrorDetail.classList.add('show');
+                    pdfProgressText.textContent = '❌ Generation failed';
+                    pdfProgressFill.style.width = '100%';
+                    await new Promise(r => setTimeout(r, 2000));
+                } finally {
+                    pdfOverlay.classList.remove('active');
+                    printPages.style.display = 'none';
+                    pdfBtn.classList.remove('loading');
+                    pdfBtn.disabled = false;
+                }
+            }
+
+            // ---- event listeners ----
+            printBtn.addEventListener('click', handlePrint);
+
+            pdfBtn.addEventListener('click', function() {
+                pdfBtn.classList.add('loading');
+                pdfBtn.disabled = true;
+                handlePDF().finally(() => {
+                    pdfBtn.classList.remove('loading');
+                    pdfBtn.disabled = false;
+                });
+            });
+
+            pdfCancelBtn.addEventListener('click', function() {
+                pdfCancelFlag = true;
+                pdfProgressText.textContent = '⏹️ Cancelling…';
+                pdfCancelBtn.disabled = true;
+            });
+
+            // Auto-uppercase on blur
+            nameInput.addEventListener('blur', function() {
+                if (this.value.trim()) this.value = this.value.trim().toUpperCase();
+            });
+            panInput.addEventListener('blur', function() {
+                if (this.value.trim()) this.value = this.value.trim().toUpperCase();
+            });
+
+            // Enter key triggers print (not PDF)
+            form.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handlePrint();
+                }
+            });
+
+            nameInput.focus();
+
+            console.log('✅ PAN Card Generator ready. Use “Print” or “Download PDF”.');
+        })();
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PAN Overlay</title>
+
+<style>
+@page{
+    size:A4;
+    margin:0;
+}
+
+html,body{
+    margin:0;
+    padding:0;
+    width:210mm;
+    height:297mm;
+    background:#fff;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+    font-family:Arial,Helvetica,sans-serif;
+}
+
+.page{
+    width:210mm;
+    height:297mm;
+    position:relative;
+    overflow:hidden;
+}
+
+/* Background Image */
+
+.bg{
+    position:absolute;
+
+    width:397px;
+    height:802px;
+
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    background:url("background1.jpg") no-repeat center;
+    background-size:contain;
+}
+
+/* Overlay */
+
+.overlay{
+    position:absolute;
+
+    width:397px;
+    height:802px;
+
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    pointer-events:none;
+}
+
+/* =======================
+   TEXT POSITIONS
+   ======================= */
+
+.pan{
+    position:absolute;
+    left:68px;
+    top:316px;
+    font-size:16px;
+    font-weight:500;
+}
+
+.name{
+    position:absolute;
+    left:69px;
+    top:412px;
+    font-size:16px;
+    font-weight:500;
+}
+
+.dob{
+    position:absolute;
+    left:69px;
+    top:508px;
+    font-size:16px;
+    font-weight:500;
+}
+
+.mobile{
+    position:absolute;
+    left:108px;
+    top:607px;
+    font-size:16px;
+    font-weight:500;
+}
+
+/* Optional hidden border for alignment */
+.debug{
+    display:none;
+    position:absolute;
+    inset:0;
+    border:1px solid red;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="page">
+
+    <div class="bg"></div>
+
+    <div class="overlay">
+
+        <div class="pan">##PAN##</div>
+
+        <div class="name">##NAME##</div>
+
+        <div class="dob">##DOB##</div>
+
+        <div class="mobile">##MOB##</div>
+
+        <div class="debug"></div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
