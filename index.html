@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PAN Card Generator &amp; Print + PDF</title>
+    <title>PAN Card Generator &amp; PDF</title>
 
     <!-- html2canvas + jsPDF from CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
@@ -129,7 +129,7 @@
 
         .btn-row .btn {
             flex: 1;
-            min-width: 140px;
+            min-width: 160px;
             padding: 14px 16px;
             border: none;
             border-radius: 10px;
@@ -152,14 +152,6 @@
             opacity: 0.6;
             cursor: not-allowed;
             transform: none;
-        }
-
-        .btn-print {
-            background: #4f46e5;
-            color: #fff;
-        }
-        .btn-print:hover:not(:disabled) {
-            background: #4338ca;
         }
 
         .btn-pdf {
@@ -197,20 +189,20 @@
             }
         }
 
-        .print-tip {
+        .pdf-tip {
             font-size: 13px;
             color: #555;
             background: #f8f9fc;
             padding: 10px 14px;
             border-radius: 8px;
             margin-top: 14px;
-            border-left: 3px solid #4f46e5;
+            border-left: 3px solid #16a34a;
             line-height: 1.5;
         }
-        .print-tip strong {
+        .pdf-tip strong {
             color: #1a1a2e;
         }
-        .print-tip code {
+        .pdf-tip code {
             background: #eef0f4;
             padding: 1px 6px;
             border-radius: 4px;
@@ -413,7 +405,7 @@
             font-weight: 500;
         }
 
-        /* ========== PRINT MEDIA ========== */
+        /* ========== PRINT MEDIA (kept for PDF capture compatibility) ========== */
         @media print {
             html,
             body {
@@ -478,7 +470,7 @@
             .btn-row .btn {
                 font-size: 15px;
                 padding: 12px 10px;
-                min-width: 100px;
+                min-width: 120px;
             }
             .btn-row {
                 gap: 8px;
@@ -588,7 +580,7 @@
     <!-- ============================================================ -->
     <div class="form-container" id="formContainer">
         <h1>📄 PAN Card Generator</h1>
-        <div class="subtitle">Enter details &amp; Print or Download PDF</div>
+        <div class="subtitle">Enter details &amp; download high‑quality PDF</div>
 
         <form id="panForm" novalidate>
             <!-- Name -->
@@ -624,10 +616,6 @@
             </div>
 
             <div class="btn-row">
-                <button type="button" class="btn btn-print" id="printBtn">
-                    <span class="btn-text">🖨️ Print</span>
-                    <span class="spinner"></span>
-                </button>
                 <button type="button" class="btn btn-pdf" id="pdfBtn">
                     <span class="btn-text">📥 Download PDF</span>
                     <span class="spinner"></span>
@@ -635,21 +623,21 @@
             </div>
         </form>
 
-        <div class="print-tip">
-            <strong>💡 Print tip:</strong> If backgrounds don't appear, ensure
-            <strong>“Background graphics”</strong> is checked in your browser's print dialog.
-            <br />
+        <div class="pdf-tip">
             <strong>📥 PDF tip:</strong> Click <strong>“Download PDF”</strong> to generate a
-            3‑page PDF file directly — no print dialog needed.
+            3‑page PAN card PDF with <strong>HD‑quality backgrounds</strong>.
             <br />
-            <strong>⚠️ Important:</strong> For PDF download, <strong>serve this page via a local web server</strong>
-            (e.g., VS Code Live Server) to avoid cross‑origin image restrictions. If you see a “tainted canvas” error,
-            that’s the fix.
+            <strong>⚠️ Important:</strong> For best results, <strong>serve this page via a local web server</strong>
+            (e.g., VS Code Live Server) so the background images load without cross‑origin restrictions.
+            <br />
+            <strong>🖼️ HD images:</strong> Replace <code>background1.jpg</code>, <code>background2.jpg</code>,
+            <code>background3.jpg</code> with high‑resolution versions (at least <strong>1200 × 1700 px</strong>)
+            for crisp, sharp output.
         </div>
     </div>
 
     <!-- ============================================================ -->
-    <!-- PRINT PAGES (hidden on screen, shown during print / PDF capture) -->
+    <!-- PRINT PAGES (hidden on screen, shown during PDF capture) -->
     <!-- ============================================================ -->
     <div class="print-pages" id="printPages">
 
@@ -718,7 +706,6 @@
             const panInput = document.getElementById('panNumber');
             const dobInput = document.getElementById('dobInput');
             const mobileInput = document.getElementById('mobileNumber');
-            const printBtn = document.getElementById('printBtn');
             const pdfBtn = document.getElementById('pdfBtn');
 
             const nameGroup = document.getElementById('nameGroup');
@@ -890,23 +877,6 @@
                 return { name: nameVal, pan: panVal, dob: dobVal, mobile: mobileVal };
             }
 
-            // ---- PRINT ----
-            function handlePrint() {
-                const data = validateAndPopulate();
-                if (!data) return;
-
-                printBtn.classList.add('loading');
-                printBtn.disabled = true;
-
-                setTimeout(function() {
-                    window.print();
-                    setTimeout(function() {
-                        printBtn.classList.remove('loading');
-                        printBtn.disabled = false;
-                    }, 500);
-                }, 300);
-            }
-
             // ---- PDF ----
             async function handlePDF() {
                 const data = validateAndPopulate();
@@ -919,6 +889,7 @@
                 pdfProgressText.textContent = 'Preparing pages…';
                 pdfErrorDetail.classList.remove('show');
                 pdfErrorDetail.textContent = '';
+                pdfCancelBtn.disabled = false;
 
                 const printPages = document.getElementById('printPages');
                 const pages = document.querySelectorAll('.page');
@@ -942,23 +913,27 @@
                         pdfProgressText.textContent = `Capturing page ${i+1} of ${total}…`;
                         pdfProgressFill.style.width = `${(i / total) * 100}%`;
 
-                        // Capture with html2canvas – enable CORS and increase scale
+                        // ---- HD CAPTURE SETTINGS ----
+                        // scale: 4.0  →  ultra‑sharp output (4× resolution)
+                        // useCORS: true →  handles cross‑origin images
+                        // backgroundColor: #ffffff → clean background
                         const canvas = await html2canvas(page, {
-                            scale: 2.5,
-                            useCORS: true,          // Request images with crossOrigin
-                            allowTaint: false,      // Keep canvas clean
+                            scale: 4.0, // <-- HD quality boost
+                            useCORS: true,
+                            allowTaint: false,
                             backgroundColor: '#ffffff',
                             logging: false,
                             width: 794,
                             height: 1123,
                             onclone: function(clonedDoc) {
-                                // Ensure cloned backgrounds are visible
+                                // ensure cloned backgrounds are visible
                             }
                         });
 
                         if (pdfCancelFlag) break;
 
-                        const imgData = canvas.toDataURL('image/jpeg', 0.92);
+                        // JPEG quality 0.95 → high quality with reasonable file size
+                        const imgData = canvas.toDataURL('image/jpeg', 0.95);
                         if (i > 0) pdf.addPage();
                         pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
 
@@ -987,7 +962,6 @@
 
                 } catch (err) {
                     console.error('PDF generation error:', err);
-                    // Check if it's a tainted canvas error
                     const msg = err.message || '';
                     if (msg.includes('Tainted') || msg.includes('cross-origin')) {
                         pdfErrorDetail.textContent =
@@ -1008,7 +982,6 @@
             }
 
             // ---- event listeners ----
-            printBtn.addEventListener('click', handlePrint);
 
             pdfBtn.addEventListener('click', function() {
                 pdfBtn.classList.add('loading');
@@ -1033,17 +1006,17 @@
                 if (this.value.trim()) this.value = this.value.trim().toUpperCase();
             });
 
-            // Enter key triggers print (not PDF)
+            // Enter key triggers PDF download
             form.addEventListener('keydown', function(e) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    handlePrint();
+                    pdfBtn.click();
                 }
             });
 
             nameInput.focus();
 
-            console.log('✅ PAN Card Generator ready. Use “Print” or “Download PDF”.');
+            console.log('✅ PAN Card Generator ready. Click “Download PDF” for HD output.');
         })();
     </script>
 
